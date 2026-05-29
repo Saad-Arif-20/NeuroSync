@@ -1,0 +1,17 @@
+torch
+torchvision
+torchaudio
+transformers
+datasets
+accelerate
+peft
+scikit-learn
+pandas
+numpy
+matplotlib
+plotly
+umap-learn
+fastapi
+uvicorn
+python-multipart
+pydantic
