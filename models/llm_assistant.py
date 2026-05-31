@@ -21,7 +21,7 @@ class MultimodalLLMAssistant(nn.Module):
             llm_model_name,
             config=config,
             torch_dtype=torch.float16,
-            device_map="auto",
+            device_map={"": "cuda" if torch.cuda.is_available() else "cpu"},
             low_cpu_mem_usage=True
         )
         
@@ -107,6 +107,9 @@ class MultimodalLLMAssistant(nn.Module):
         text_embeddings = self.llm.get_input_embeddings()(tokens.input_ids)
         
         inputs_embeds = torch.cat([projected_embeddings, text_embeddings], dim=1)
+        
+        # FIX: Ensure everything is float16 (or whatever the LLM was loaded in) to prevent mixed dtype crashes
+        inputs_embeds = inputs_embeds.to(dtype=self.llm.dtype)
         
         generated_ids = self.llm.generate(
             inputs_embeds=inputs_embeds,
