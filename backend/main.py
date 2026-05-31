@@ -1,9 +1,18 @@
+import sys
+import os
+# Allow importing from the root 'models' directory
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import torch
 import numpy as np
 import io
 from pydantic import BaseModel
+from PIL import Image
+from transformers import AutoTokenizer
+import torchvision.transforms as T
+from models.multimodal_encoder import SharedEmbeddingSpace
 
 app = FastAPI(title="NeuroSync API", version="1.0.0")
 
@@ -16,34 +25,75 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 1. Initialize the AI Models
+print("Loading AI Models...")
+device = torch.device("cpu") # We run inference on CPU locally since laptops usually don't have heavy GPUs
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+model = SharedEmbeddingSpace(projection_dim=512).to(device)
+
+# 2. Load the trained weights
+weights_path = os.path.join(os.path.dirname(__file__), "neurosync_phase1.pth")
+if os.path.exists(weights_path):
+    model.load_state_dict(torch.load(weights_path, map_location=device))
+    print("Successfully loaded Phase 1 Trained Weights!")
+else:
+    print(f"WARNING: Weights not found at {weights_path}. Falling back to untrained mock mode.")
+
+model.eval() # Set model to evaluation mode (no training)
+
 class TextRequest(BaseModel):
     text: str
 
 @app.get("/")
 def read_root():
-    return {"status": "NeuroSync API is running"}
+    return {"status": "NeuroSync API is running with trained AI"}
 
 @app.post("/api/embed/image")
 async def embed_image(file: UploadFile = File(...)):
-    # Mock behavior: In production, we pass this through ImageEncoder
+    # Read the uploaded image
     contents = await file.read()
+    image = Image.open(io.BytesIO(contents)).convert("RGB")
     
-    # Generate a random 512-dim embedding for demonstration
-    mock_embedding = np.random.randn(512).tolist()
+    # Preprocess exactly how we did in Colab
+    transform = T.Compose([
+        T.Resize((224, 224)),
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    
+    img_tensor = transform(image).unsqueeze(0).to(device)
+    
+    # Run through the ResNet18 image encoder
+    with torch.no_grad():
+        embedding = model.image_encoder(img_tensor).squeeze(0).tolist()
     
     return {
         "filename": file.filename,
-        "embedding": mock_embedding,
+        "embedding": embedding,
         "modality": "image"
     }
 
 @app.post("/api/embed/text")
 async def embed_text(request: TextRequest):
-    # Mock behavior: Pass text through TextEncoder
-    mock_embedding = np.random.randn(512).tolist()
+    # Preprocess exactly how we did in Colab
+    encoded = tokenizer(
+        request.text, 
+        padding="max_length", 
+        truncation=True, 
+        max_length=128, 
+        return_tensors="pt"
+    )
+    
+    # Run through the DistilBERT text encoder
+    with torch.no_grad():
+        embedding = model.text_encoder(
+            input_ids=encoded["input_ids"].to(device),
+            attention_mask=encoded["attention_mask"].to(device)
+        ).squeeze(0).tolist()
+        
     return {
         "text": request.text,
-        "embedding": mock_embedding,
+        "embedding": embedding,
         "modality": "text"
     }
 
