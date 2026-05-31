@@ -129,5 +129,10 @@ def train():
         
     print("Training Complete! Shared embedding space has been learned.")
     
+    # SAVE THE MODEL WEIGHTS
+    save_path = "neurosync_phase1.pth"
+    torch.save(model.state_dict(), save_path)
+    print(f"Model successfully saved to {save_path}")
+
 if __name__ == "__main__":
     train()
