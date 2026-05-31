@@ -133,9 +133,7 @@ async def generate_explanation(modality: str = Form(...), file: UploadFile = Fil
             
             # 2. Pass embedding to Phase 2 LLM
             generated_text = llm_model.generate(
-                embedding, 
-                prompt_text="Describe what is happening in this image signal:",
-                max_new_tokens=40
+                embedding
             )
             
         return {

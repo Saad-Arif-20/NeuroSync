@@ -94,7 +94,7 @@ class MultimodalLLMAssistant(nn.Module):
             
         return outputs
 
-    def generate(self, input_embeddings, prompt_text="Describe what is happening in this signal:", max_new_tokens=50):
+    def generate(self, input_embeddings, prompt_text="This neural signal pattern corresponds to a", max_new_tokens=15):
         """
         Inference function to generate text from an image or EEG embedding.
         """
@@ -110,8 +110,9 @@ class MultimodalLLMAssistant(nn.Module):
         generated_ids = self.llm.generate(
             inputs_embeds=inputs_embeds,
             max_new_tokens=max_new_tokens,
-            temperature=0.7,
-            do_sample=True
+            temperature=0.1,
+            do_sample=False,
+            pad_token_id=self.tokenizer.eos_token_id
         )
         
-        return self.tokenizer.decode(generated_ids[0], skip_special_tokens=True)
+        return prompt_text + " " + self.tokenizer.decode(generated_ids[0], skip_special_tokens=True).strip()

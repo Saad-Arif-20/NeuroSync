@@ -5,6 +5,9 @@ import factory from 'react-plotly.js/factory';
 const Plot = typeof factory === 'function' ? factory(Plotly) : factory.default(Plotly);
 import axios from 'axios';
 
+// Bypass ngrok browser interstitial warning for all requests
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+
 function App() {
   const [activeTab, setActiveTab] = useState('vision');
   const [file, setFile] = useState(null);
@@ -30,13 +33,14 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const embedRes = await axios.post('http://localhost:8000/api/embed/image', formData);
+      const embedRes = await axios.post('/api/embed/image', formData);
       setEmbedding(embedRes.data.embedding);
       
       // 2. Pass to LLM Assistant
       const genFormData = new FormData();
-      genFormData.append('modality', activeTab);
-      const genRes = await axios.post('http://localhost:8000/api/generate', genFormData);
+      genFormData.append('modality', activeTab === 'vision' ? 'image' : activeTab);
+      genFormData.append('file', file);
+      const genRes = await axios.post('/api/generate', genFormData);
       
       setLlmOutput(genRes.data.generated_text);
     } catch (error) {
