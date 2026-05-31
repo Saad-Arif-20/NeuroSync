@@ -20,6 +20,7 @@ class MultimodalLLMAssistant(nn.Module):
         self.llm = AutoModelForCausalLM.from_pretrained(
             llm_model_name,
             config=config,
+            torch_dtype=torch.float32,
             device_map="auto"
         )
         
