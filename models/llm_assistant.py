@@ -20,8 +20,9 @@ class MultimodalLLMAssistant(nn.Module):
         self.llm = AutoModelForCausalLM.from_pretrained(
             llm_model_name,
             config=config,
-            torch_dtype=torch.float32,
-            device_map="auto"
+            torch_dtype=torch.float16,
+            device_map="auto",
+            low_cpu_mem_usage=True
         )
         
         # 2. Configure LoRA (Low-Rank Adaptation)
