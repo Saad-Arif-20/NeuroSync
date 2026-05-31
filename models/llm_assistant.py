@@ -16,7 +16,8 @@ class MultimodalLLMAssistant(nn.Module):
         self.llm = AutoModelForCausalLM.from_pretrained(
             llm_model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
+            device_map="auto",
+            pad_token_id=self.tokenizer.eos_token_id
         )
         
         # 2. Configure LoRA (Low-Rank Adaptation)
