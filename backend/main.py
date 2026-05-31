@@ -35,7 +35,7 @@ model = SharedEmbeddingSpace(projection_dim=512).to(device)
 # 2. Load the trained Phase 1 weights
 weights_path = os.path.join(os.path.dirname(__file__), "neurosync_phase1.pth")
 if os.path.exists(weights_path):
-    model.load_state_dict(torch.load(weights_path, map_location=device))
+    model.load_state_dict(torch.load(weights_path, map_location=device), strict=False)
     print("Successfully loaded Phase 1 Trained Weights!")
 else:
     print(f"WARNING: Weights not found at {weights_path}. Falling back to untrained mock mode.")

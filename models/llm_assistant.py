@@ -94,7 +94,7 @@ class MultimodalLLMAssistant(nn.Module):
             
         return outputs
 
-    def generate(self, input_embeddings, prompt_text="This neural signal pattern corresponds to a", max_new_tokens=15):
+    def generate(self, input_embeddings, prompt_text="This neural signal pattern corresponds to a", max_new_tokens=5):
         """
         Inference function to generate text from an image or EEG embedding.
         """

@@ -7,12 +7,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://paving-eatery-result.ngrok-free.dev',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        secure: false,
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
+        secure: false
       }
     }
   }
