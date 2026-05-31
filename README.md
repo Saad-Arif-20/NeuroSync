@@ -1,5 +1,7 @@
 # NeuroSync
 
+> 🚧 **Status: Active Development** — Phase 3 (EEG Encoder integration and training) is currently in progress.
+
 A multimodal AI research platform for aligning vision, language, and EEG brain signals into a shared representation space.
 
 The idea started as a way to explore CLIP-style contrastive learning, and grew into a 3-phase pipeline: vision-language alignment, LLM-based generation, and a brainwave decoder. It runs locally for dev and can be proxied to a Colab T4 GPU for inference since Phi-2 is too slow on CPU.
