@@ -104,6 +104,11 @@ def train():
         test_embedding = torch.randn(1, 512).to(device)
         response = model.generate(test_embedding, prompt_text="Describe this signal: ", max_new_tokens=20)
         print(f"\nGenerative Test Output:\n{response}")
+        
+    # SAVE THE MODEL WEIGHTS
+    save_path = "neurosync_phase2_lora.pth"
+    torch.save(model.state_dict(), save_path)
+    print(f"\n✅ Phase 2 Model successfully saved to {save_path}")
 
 if __name__ == "__main__":
     train()
