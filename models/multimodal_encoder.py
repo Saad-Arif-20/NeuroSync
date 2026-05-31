@@ -51,20 +51,27 @@ class ProjectionHead(nn.Module):
         x = self.layer_norm(x)
         return x
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from eeg.model import EEGEncoder
+
 class SharedEmbeddingSpace(nn.Module):
     def __init__(self, projection_dim=512):
         super().__init__()
         self.text_encoder = TextEncoder(projection_dim=projection_dim)
         self.image_encoder = ImageEncoder(projection_dim=projection_dim)
         
-        # We can add an EEG encoder here later in Phase 3
-        # self.eeg_encoder = EEGEncoder(projection_dim=projection_dim)
+        # Add EEG encoder for Phase 3
+        self.eeg_encoder = EEGEncoder(projection_dim=projection_dim)
         
-    def forward(self, images=None, input_ids=None, attention_mask=None):
+    def forward(self, images=None, input_ids=None, attention_mask=None, eeg_signals=None):
         features = {}
         if images is not None:
             features['image_embeddings'] = self.image_encoder(images)
         if input_ids is not None and attention_mask is not None:
             features['text_embeddings'] = self.text_encoder(input_ids, attention_mask)
+        if eeg_signals is not None:
+            features['eeg_embeddings'] = self.eeg_encoder(eeg_signals)
             
         return features

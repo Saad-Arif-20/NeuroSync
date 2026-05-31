@@ -33,7 +33,8 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const embedRes = await axios.post('/api/embed/image', formData);
+      const endpoint = activeTab === 'eeg' ? '/api/embed/eeg' : '/api/embed/image';
+      const embedRes = await axios.post(endpoint, formData);
       setEmbedding(embedRes.data.embedding);
       
       // 2. Pass to LLM Assistant
