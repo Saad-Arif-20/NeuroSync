@@ -41,13 +41,16 @@ class MultimodalLLMAssistant(nn.Module):
         # The LLM expects embeddings of a certain dimension (e.g., 2048 or 4096)
         # We project our 512-dim shared embedding from Phase 1 into the LLM's input dimension
         llm_hidden_size = self.llm.config.hidden_size
-        self.visual_projection = nn.Linear(embedding_dim, llm_hidden_size)
+        self.visual_projection = nn.Linear(embedding_dim, llm_hidden_size, dtype=torch.float16)
         
     def forward(self, input_embeddings, input_ids=None, attention_mask=None, labels=None):
         """
         input_embeddings: The embeddings coming from our Phase 1 model (Image or EEG)
         input_ids: Text prompts (e.g., "Describe this image: ")
         """
+        # Ensure precision matches the LLM to prevent Float/Half crashes
+        input_embeddings = input_embeddings.to(dtype=self.visual_projection.weight.dtype)
+        
         # Project our custom embedding into the LLM's dimension
         projected_embeddings = self.visual_projection(input_embeddings)
         
@@ -94,6 +97,7 @@ class MultimodalLLMAssistant(nn.Module):
         Inference function to generate text from an image or EEG embedding.
         """
         device = input_embeddings.device
+        input_embeddings = input_embeddings.to(dtype=self.visual_projection.weight.dtype)
         projected_embeddings = self.visual_projection(input_embeddings).unsqueeze(1)
         
         tokens = self.tokenizer(prompt_text, return_tensors="pt").to(device)
