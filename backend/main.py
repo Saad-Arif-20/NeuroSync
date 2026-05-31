@@ -66,71 +66,73 @@ def read_root():
 
 @app.post("/api/embed/image")
 async def embed_image(file: UploadFile = File(...)):
-    # Read the uploaded image
-    contents = await file.read()
-    image = Image.open(io.BytesIO(contents)).convert("RGB")
-    
-    # Preprocess exactly how we did in Colab
-    transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-    
-    img_tensor = transform(image).unsqueeze(0).to(device)
-    
-    # Run through the ResNet18 image encoder
-    with torch.no_grad():
-        embedding = model.image_encoder(img_tensor).squeeze(0).tolist()
-    
-    return {
-        "filename": file.filename,
-        "embedding": embedding,
-        "modality": "image"
-    }
+    try:
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
+        
+        transform = T.Compose([
+            T.Resize((224, 224)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        
+        img_tensor = transform(image).unsqueeze(0).to(device)
+        
+        with torch.no_grad():
+            embedding = model.image_encoder(img_tensor).squeeze(0).tolist()
+        
+        return {
+            "filename": file.filename,
+            "embedding": embedding,
+            "modality": "image"
+        }
+    except Exception as e:
+        import traceback
+        print(f"ERROR in embed_image: {traceback.format_exc()}")
+        return {"error": str(e)}
 
 @app.post("/api/embed/text")
 async def embed_text(request: TextRequest):
-    # Preprocess exactly how we did in Colab
-    encoded = tokenizer(
-        request.text, 
-        padding="max_length", 
-        truncation=True, 
-        max_length=128, 
-        return_tensors="pt"
-    )
-    
-    # Run through the DistilBERT text encoder
-    with torch.no_grad():
-        embedding = model.text_encoder(
-            input_ids=encoded["input_ids"].to(device),
-            attention_mask=encoded["attention_mask"].to(device)
-        ).squeeze(0).tolist()
+    try:
+        encoded = tokenizer(
+            request.text, 
+            padding="max_length", 
+            truncation=True, 
+            max_length=128, 
+            return_tensors="pt"
+        )
         
-    return {
-        "text": request.text,
-        "embedding": embedding,
-        "modality": "text"
-    }
+        with torch.no_grad():
+            embedding = model.text_encoder(
+                input_ids=encoded["input_ids"].to(device),
+                attention_mask=encoded["attention_mask"].to(device)
+            ).squeeze(0).tolist()
+            
+        return {
+            "text": request.text,
+            "embedding": embedding,
+            "modality": "text"
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/api/embed/eeg")
 async def embed_eeg(file: UploadFile = File(...)):
-    # Read the uploaded EEG file (mocking processing)
-    # In reality, you'd parse CSV, EDF, etc.
-    # For now, we will just generate a mock dummy tensor based on the file to simulate
-    # 64 channels and 1000 sequence length.
-    
-    eeg_signal = torch.randn(1, 64, 1000).to(device)
-    
-    # Run through the EEG encoder
-    with torch.no_grad():
-        embedding = model.eeg_encoder(eeg_signal).squeeze(0).tolist()
-    
-    return {
-        "filename": file.filename,
-        "embedding": embedding,
-        "modality": "eeg"
-    }
+    try:
+        eeg_signal = torch.randn(1, 64, 1000).to(device)
+        
+        with torch.no_grad():
+            embedding = model.eeg_encoder(eeg_signal).squeeze(0).tolist()
+        
+        return {
+            "filename": file.filename,
+            "embedding": embedding,
+            "modality": "eeg"
+        }
+    except Exception as e:
+        import traceback
+        print(f"ERROR in embed_eeg: {traceback.format_exc()}")
+        return {"error": str(e)}
 
 @app.post("/api/generate")
 async def generate_explanation(modality: str = Form(...), file: UploadFile = File(None)):

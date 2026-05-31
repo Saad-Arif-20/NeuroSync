@@ -108,8 +108,8 @@ class MultimodalLLMAssistant(nn.Module):
         
         inputs_embeds = torch.cat([projected_embeddings, text_embeddings], dim=1)
         
-        # FIX: Ensure everything is float16 (or whatever the LLM was loaded in) to prevent mixed dtype crashes
-        inputs_embeds = inputs_embeds.to(dtype=self.llm.dtype)
+        # FIX: Ensure everything is float16 to prevent mixed dtype crashes
+        inputs_embeds = inputs_embeds.to(dtype=torch.float16)
         
         generated_ids = self.llm.generate(
             inputs_embeds=inputs_embeds,
