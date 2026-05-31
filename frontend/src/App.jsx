@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Upload, BrainCircuit, MessageSquare, Database, Settings, Activity } from 'lucide-react';
-import Plot from 'react-plotly.js';
+import Plotly from 'plotly.js-dist';
+import factory from 'react-plotly.js/factory';
+const Plot = typeof factory === 'function' ? factory(Plotly) : factory.default(Plotly);
 import axios from 'axios';
 
 function App() {
