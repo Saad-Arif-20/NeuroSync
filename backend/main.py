@@ -134,34 +134,39 @@ async def embed_eeg(file: UploadFile = File(...)):
 
 @app.post("/api/generate")
 async def generate_explanation(modality: str = Form(...), file: UploadFile = File(None)):
-    if modality == "image" and file:
-        contents = await file.read()
-        image = Image.open(io.BytesIO(contents)).convert("RGB")
-        
-        transform = T.Compose([
-            T.Resize((224, 224)),
-            T.ToTensor(),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        
-        img_tensor = transform(image).unsqueeze(0).to(device)
-        
-        with torch.no_grad():
-            embedding = model.image_encoder(img_tensor)
-            generated_text = llm_model.generate(embedding)
+    try:
+        if modality == "image" and file:
+            contents = await file.read()
+            image = Image.open(io.BytesIO(contents)).convert("RGB")
             
-        return {"generated_text": generated_text, "confidence": 0.94}
-        
-    elif modality == "eeg" and file:
-        eeg_signal = torch.randn(1, 64, 1000).to(device)
-        
-        with torch.no_grad():
-            embedding = model.eeg_encoder(eeg_signal)
-            generated_text = llm_model.generate(embedding)
+            transform = T.Compose([
+                T.Resize((224, 224)),
+                T.ToTensor(),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
             
-        return {"generated_text": generated_text, "confidence": 0.88}
-        
-    return {"generated_text": "Unsupported modality or missing file.", "confidence": 0.0}
+            img_tensor = transform(image).unsqueeze(0).to(device)
+            
+            with torch.no_grad():
+                embedding = model.image_encoder(img_tensor)
+                generated_text = llm_model.generate(embedding)
+                
+            return {"generated_text": generated_text, "confidence": 0.94}
+            
+        elif modality == "eeg" and file:
+            eeg_signal = torch.randn(1, 64, 1000).to(device)
+            
+            with torch.no_grad():
+                embedding = model.eeg_encoder(eeg_signal)
+                generated_text = llm_model.generate(embedding)
+                
+            return {"generated_text": generated_text, "confidence": 0.88}
+            
+        return {"generated_text": "Unsupported modality or missing file.", "confidence": 0.0}
+    except Exception as e:
+        import traceback
+        error_msg = f"Backend Error: {str(e)}\n{traceback.format_exc()}"
+        return {"generated_text": error_msg, "confidence": 0.0}
 
 if __name__ == "__main__":
     import uvicorn
