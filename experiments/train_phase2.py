@@ -36,6 +36,8 @@ class MockEmbeddingToTextDataset(Dataset):
         
         # For language modeling, labels are usually the same as input_ids
         labels = encoded_text["input_ids"].clone()
+        # Ignore pad tokens in loss
+        labels[labels == self.tokenizer.pad_token_id] = -100
         
         return {
             "embedding": mock_embedding,

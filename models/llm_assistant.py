@@ -42,6 +42,8 @@ class MultimodalLLMAssistant(nn.Module):
         # We project our 512-dim shared embedding from Phase 1 into the LLM's input dimension
         llm_hidden_size = self.llm.config.hidden_size
         self.visual_projection = nn.Linear(embedding_dim, llm_hidden_size, dtype=torch.float16)
+        torch.nn.init.normal_(self.visual_projection.weight, std=0.01)
+        torch.nn.init.zeros_(self.visual_projection.bias)
         
     def forward(self, input_embeddings, input_ids=None, attention_mask=None, labels=None):
         """
