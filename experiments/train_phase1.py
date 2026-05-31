@@ -12,44 +12,62 @@ from models.loss import contrastive_loss
 
 from datasets import load_dataset
 from PIL import Image
+import requests
+from io import BytesIO
 
-class Flickr8kDataset(Dataset):
-    def __init__(self, tokenizer, max_samples=None):
+class ConceptualCaptionsDataset(Dataset):
+    """
+    Uses Google's Conceptual Captions (CC3M) dataset.
+    - 100% public, no authentication required.
+    - Uses streaming=True so we never download the full 3M dataset.
+    - We just take max_samples items from the stream.
+    """
+    def __init__(self, tokenizer, max_samples=500):
         self.tokenizer = tokenizer
-        print("Downloading Flickr8k dataset from HuggingFace (this might take a moment)...")
-        # 'nlphuji/flickr8k' contains images and captions
-        self.hf_dataset = load_dataset("nlphuji/flickr8k", split="train")
+        self.samples = []
+        print(f"Streaming {max_samples} samples from Conceptual Captions (public, no auth needed)...")
         
-        if max_samples:
-            self.hf_dataset = self.hf_dataset.select(range(max_samples))
-            
+        # Stream the dataset — only downloads what we need, not the whole 3M rows
+        stream = load_dataset("google-research-datasets/conceptual_captions", split="train", streaming=True)
+        
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
+        
+        # Collect valid samples (some image URLs may be dead, so we skip them)
+        count = 0
+        for item in stream:
+            if count >= max_samples:
+                break
+            try:
+                # Download image from URL with a short timeout
+                response = requests.get(item["image_url"], timeout=3)
+                response.raise_for_status()
+                image = Image.open(BytesIO(response.content)).convert("RGB")
+                img_tensor = self.transform(image)
+                self.samples.append((img_tensor, item["caption"]))
+                count += 1
+                if count % 50 == 0:
+                    print(f"  Collected {count}/{max_samples} samples...")
+            except Exception:
+                # Skip broken/dead image URLs silently
+                continue
+        
+        print(f"Dataset ready: {len(self.samples)} valid image-caption pairs.")
 
     def __len__(self):
-        return len(self.hf_dataset)
+        return len(self.samples)
 
     def __getitem__(self, idx):
-        item = self.hf_dataset[idx]
-        
-        # HuggingFace datasets automatically load images as PIL Images
-        image = item["image"]
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-            
-        img_tensor = self.transform(image)
-        
-        # Flickr8k has multiple captions, we'll pick the first one for simplicity
-        caption = item["caption"][0] if isinstance(item["caption"], list) else item["caption"]
+        img_tensor, caption = self.samples[idx]
         
         encoded_text = self.tokenizer(
-            caption, 
-            padding='max_length', 
-            truncation=True, 
-            max_length=32, 
+            caption,
+            padding='max_length',
+            truncation=True,
+            max_length=32,
             return_tensors="pt"
         )
         
@@ -70,9 +88,9 @@ def train():
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     
-    # Dataloader (Limiting to 1000 samples for the first test run)
-    dataset = Flickr8kDataset(tokenizer, max_samples=1000)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    # Dataloader — using 500 samples to keep collection time fast (~5 mins)
+    dataset = ConceptualCaptionsDataset(tokenizer, max_samples=500)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
     
     epochs = 3
     
