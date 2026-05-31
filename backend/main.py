@@ -28,7 +28,7 @@ app.add_middleware(
 
 # 1. Initialize the AI Models
 print("Loading AI Models...")
-device = torch.device("cpu") # We run inference on CPU locally since laptops usually don't have heavy GPUs
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 model = SharedEmbeddingSpace(projection_dim=512).to(device)
 
