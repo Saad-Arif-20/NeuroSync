@@ -20,7 +20,6 @@ class MultimodalLLMAssistant(nn.Module):
         self.llm = AutoModelForCausalLM.from_pretrained(
             llm_model_name,
             config=config,
-            torch_dtype=torch.float16,
             device_map="auto"
         )
         
@@ -41,7 +40,7 @@ class MultimodalLLMAssistant(nn.Module):
         # The LLM expects embeddings of a certain dimension (e.g., 2048 or 4096)
         # We project our 512-dim shared embedding from Phase 1 into the LLM's input dimension
         llm_hidden_size = self.llm.config.hidden_size
-        self.visual_projection = nn.Linear(embedding_dim, llm_hidden_size, dtype=torch.float16)
+        self.visual_projection = nn.Linear(embedding_dim, llm_hidden_size)
         torch.nn.init.normal_(self.visual_projection.weight, std=0.01)
         torch.nn.init.zeros_(self.visual_projection.bias)
         
