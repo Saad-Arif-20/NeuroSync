@@ -1,36 +1,60 @@
 # NeuroSync
 
-A Multimodal Representation Learning and Brain-AI Research Platform.
+A multimodal AI research platform for aligning vision, language, and EEG brain signals into a shared representation space.
 
-NeuroSync is an advanced AI research framework that unifies **Text**, **Image**, and **Brain Signals (EEG)** into a shared representation space. This enables cross-modal reasoning, allowing the system to decode brain activity into visual and textual concepts, and vice-versa.
+The idea started as a way to explore CLIP-style contrastive learning, and grew into a 3-phase pipeline: vision-language alignment, LLM-based generation, and a brainwave decoder. It runs locally for dev and can be proxied to a Colab T4 GPU for inference since Phi-2 is too slow on CPU.
 
-## Architecture Highlights
-- **Vision/Language (Phase 1):** CLIP-like contrastive learning alignment using PyTorch, DistilBERT, and ResNet/ViT.
-- **Generative AI (Phase 2):** Fine-tuned open-weights LLMs (Llama/Mistral) via LoRA for multi-modal context explanation.
-- **Brain Decoding (Phase 3 & 4):** Deep learning architectures (CNN/Transformers) for mapping raw EEG temporal sequences to the shared embedding space.
-- **MLOps & Full-Stack (Phase 5-7):** FastAPI inference backend, React dashboard with UMAP visualizations, Docker, and Weights & Biases experiment tracking.
+## What's implemented
 
-## Repository Structure
+**Phase 1 — Vision-Language Alignment**
+Contrastive learning between image (ResNet18) and text (DistilBERT) embeddings. Trained on Google Conceptual Captions via HuggingFace streaming. Both encoders are projected to a shared 512-dim space using InfoNCE loss.
+
+**Phase 2 — Multimodal LLM**
+Phi-2 fine-tuned with LoRA (via PEFT) to take a projected visual or EEG embedding and generate a text description. The projection layer bridges the 512-dim shared space to Phi-2's 2560-dim hidden size.
+
+**Phase 3 — EEG Brainwave Encoder**
+1D-CNN for local temporal feature extraction followed by a Transformer encoder for global context. Raw EEG input: `(batch, 64 channels, 1000 timesteps)` → 512-dim embedding in the shared space.
+
+**Inference Stack**
+- FastAPI backend (`/api/embed/image`, `/api/embed/eeg`, `/api/generate`)
+- React + Vite frontend with 3D UMAP embedding visualization (Plotly)
+- ngrok tunnel for Colab GPU-accelerated inference
+
+## Stack
+
+- PyTorch, HuggingFace Transformers, PEFT (LoRA)
+- FastAPI, Uvicorn
+- React, Vite, Plotly.js
+- Docker, GitHub Actions, WandB
+
+## Project Structure
+
 ```
 NeuroSync/
-├── frontend/       # React Web Application
-├── backend/        # FastAPI Inference Server
-├── models/         # PyTorch Architecture Definitions
-├── eeg/            # EEG Preprocessing & Dataloaders
-├── vision/         # Image Processing pipelines
-├── language/       # Text Processing & Tokenization
-├── datasets/       # Data storage (ignored in version control)
-├── experiments/    # Experiment runner scripts & configurations
-├── notebooks/      # Exploratory Data Analysis (Jupyter)
-├── research/       # Research reports and findings
-├── docker/         # Container configurations
-├── tests/          # PyTest suite
-└── docs/           # Technical documentation
+├── backend/        # FastAPI inference server
+├── models/         # PyTorch model definitions (SharedEmbeddingSpace, LLMAssistant)
+├── eeg/            # EEG encoder architecture and dataloader
+├── experiments/    # Training scripts for Phase 1, 2, and WandB setup
+├── frontend/       # React dashboard with UMAP visualizations
+└── .github/        # CI/CD pipeline
 ```
 
-## Setup (Local Development)
+## Running Locally
 
-Install dependencies:
 ```bash
 pip install -r requirements.txt
+
+# Terminal 1 — Backend
+python backend/main.py
+
+# Terminal 2 — Frontend
+cd frontend && npm install && npm run dev
 ```
+
+## Cloud Inference (Colab)
+
+Load the backend on a free T4 GPU using the ngrok tunnel setup in the Colab notebook. The React frontend proxies all `/api/*` requests through Vite to the ngrok URL.
+
+## Notes
+
+Trained weights (`*.pth`) are excluded from version control due to file size. Training scripts are in `experiments/`.

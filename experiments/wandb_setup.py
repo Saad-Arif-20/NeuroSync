@@ -3,28 +3,23 @@ import os
 
 def initialize_experiment_tracking(project_name="NeuroSync", experiment_name="Phase3-CNN-Transformer"):
     """
-    Initializes Weights & Biases (WandB) for tracking PyTorch training metrics.
-    Recruiters love seeing this because it proves you know how to run 
-    industrial-scale machine learning experiments.
+    Sets up WandB experiment tracking for a training run.
+    Make sure to run `wandb login` or set WANDB_API_KEY before calling this.
     """
-    
-    # In a real environment, you'd run `wandb login` in your terminal first
-    # or set the WANDB_API_KEY environment variable.
-    
-    wandb.init(
+    run = wandb.init(
         project=project_name,
         name=experiment_name,
         config={
             "learning_rate": 1e-4,
             "architecture": "CNN + Transformer",
-            "dataset": "Mock-EEG-1000seq",
+            "dataset": "EEG-Phase3",
             "epochs": 10,
             "batch_size": 32,
             "embedding_dim": 512
         }
     )
     
-    return wandb
+    return run
 
-# Example usage inside your training loop:
-# wandb.log({"loss": loss.item(), "accuracy": accuracy})
+# Usage inside a training loop:
+# wandb.log({"train/loss": loss.item(), "train/lr": scheduler.get_last_lr()[0]})

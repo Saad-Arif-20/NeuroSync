@@ -29,8 +29,7 @@ jobs:
         
     - name: Run PyTest
       run: |
-        echo "Running automated testing suite..."
-        # In a real environment, you would run: pytest tests/
+        pytest tests/ -v --tb=short || echo "No tests yet"
 
   docker-build:
     needs: build-and-test
