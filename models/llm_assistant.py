@@ -13,11 +13,15 @@ class MultimodalLLMAssistant(nn.Module):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             
+        from transformers import AutoConfig
+        config = AutoConfig.from_pretrained(llm_model_name)
+        config.pad_token_id = self.tokenizer.eos_token_id
+        
         self.llm = AutoModelForCausalLM.from_pretrained(
             llm_model_name,
+            config=config,
             torch_dtype=torch.float16,
-            device_map="auto",
-            pad_token_id=self.tokenizer.eos_token_id
+            device_map="auto"
         )
         
         # 2. Configure LoRA (Low-Rank Adaptation)
