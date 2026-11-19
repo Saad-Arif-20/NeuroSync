@@ -21,3 +21,13 @@ def contrastive_loss(image_embeddings, text_embeddings, temperature=0.07):
     # Average the loss
     loss = (loss_i + loss_t) / 2
     return loss
+
+
+def clip_loss(eeg_embeddings, image_embeddings, logit_scale):
+    """Symmetric InfoNCE with a LEARNABLE temperature (as in CLIP / NICE-EEG).
+    Embeddings are L2-normalised inside; logit_scale is the log of 1/temperature (init ln(1/0.07)=2.659)."""
+    a = F.normalize(eeg_embeddings, dim=-1)
+    b = F.normalize(image_embeddings, dim=-1)
+    logits = logit_scale.exp().clamp(max=100) * a @ b.T
+    labels = torch.arange(len(a), device=a.device)
+    return (F.cross_entropy(logits, labels) + F.cross_entropy(logits.T, labels)) / 2
