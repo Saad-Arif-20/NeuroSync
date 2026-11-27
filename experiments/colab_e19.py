@@ -74,10 +74,13 @@ if not os.path.exists("data/attr_train.npy"):
 
 def prep(tr, te):   # centre by the TRAIN mean, then L2-normalise
     mu = tr.mean(0, keepdims=True); return F.normalize(torch.tensor(tr - mu), dim=-1), F.normalize(torch.tensor(te - mu), dim=-1)
-def prep_patch(tag, l):   # standardise per channel with TRAIN statistics; keep on GPU in fp16
-    tr = np.load("data/p_%s_l%d_train.npy" % (tag, l)); te = np.load("data/p_%s_l%d_test.npy" % (tag, l))
-    sub = tr[::4].astype(np.float32).reshape(-1, tr.shape[-1]); mu, sd = sub.mean(0), sub.std(0) + 1e-6
-    f = lambda a: torch.tensor(((a.astype(np.float32) - mu) / sd)).half().to(dev)
+def prep_patch(tag, l):   # standardise per channel with TRAIN statistics; chunked to GPU fp16 (RAM-safe)
+    tr = np.load("data/p_%s_l%d_train.npy" % (tag, l), mmap_mode="r"); te = np.load("data/p_%s_l%d_test.npy" % (tag, l), mmap_mode="r")
+    sub = np.asarray(tr[::8]).astype(np.float32).reshape(-1, tr.shape[-1]); mu = torch.tensor(sub.mean(0)).to(dev); sd = torch.tensor(sub.std(0) + 1e-6).to(dev); del sub
+    def f(a):
+        out = torch.empty(a.shape, dtype=torch.float16, device=dev)
+        for i in range(0, len(a), 1000): out[i:i+1000] = ((torch.tensor(np.asarray(a[i:i+1000])).to(dev).float() - mu) / sd).half()
+        return out
     return f(tr), f(te)
 TG = {"clip": prep(np.load("data/f_ViT-B-32_train.npy"), np.load("data/f_ViT-B-32_test.npy"))}
 dtr, dte = np.load("data/f_dino_train.npz"), np.load("data/f_dino_test.npz")
